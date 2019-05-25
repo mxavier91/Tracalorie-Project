@@ -63,6 +63,24 @@ const ItemCtrl = (function () {
 
       return found;
     },
+
+    updateItem: function(name, calories) {
+      // Convert Calories into a number (it's currently a string)
+      calories = parseInt(calories);
+
+      let found = null
+
+      data.items.forEach(function(item) {
+        if(item.id === data.currentItem.id) {
+          item.name = name;
+          item.calories = calories;
+          found = item;
+        }
+      })
+
+      return found;
+    },
+
     setCurrentItem: function(item) {
       data.currentItem = item
     },
@@ -99,6 +117,7 @@ const UICtrl = (function () {
 
   const UISelectors = {
     itemList: '#item-list',
+    listItems: '#item-list li',
     addBtn: '.add-btn',
     updateBtn: '.update-btn',
     deleteBtn: '.delete-btn',
@@ -155,6 +174,25 @@ const UICtrl = (function () {
       // Insert Item
       document.querySelector(UISelectors.itemList).insertAdjacentElement('beforeend', li)
     },
+
+    updateListItem: function (updateditem) {
+      let listItems = document.querySelectorAll(UISelectors.listItems);
+
+      // Convert Nodelist into Array (querySelectorAll returns a NodeList, not an Array)
+      listItems = Array.from(listItems);
+
+      listItems.forEach(function(listItem) {
+        const itemId = listItem.getAttribute('id');
+
+        if(itemId === `item-${updateditem.id}`) {
+          document.querySelector(`#${itemId}`).innerHTML = `<strong>${updateditem.name}: </strong> <em>${updateditem.calories} Calories</em>
+          <a href="#" class="secondary-content">
+            <i class="edit-item fas fa-pencil-alt"></i>
+          </a>`;
+        }
+      })
+    },
+
     clearInput: function() {
       document.querySelector(UISelectors.ItemNameInput).value = '';
       document.querySelector(UISelectors.itemCaloriesInput).value = '';
@@ -207,8 +245,19 @@ const App = (function (ItemCtrl, UICtrl) {
     // Add Item Event
     document.querySelector(UISelectors.addBtn).addEventListener('click', itemAddSubmit);
 
+    // disable submit on enter
+    document.addEventListener('keypress', function(e) {
+      if(e.keyCode === 13 || e.which === 13) {
+        e.preventDefault()
+        return false
+      }
+    })
+
     // Edit icon click event
-    document.querySelector(UISelectors.itemList).addEventListener('click', itemUpdateSubmit)
+    document.querySelector(UISelectors.itemList).addEventListener('click', itemEditClick);
+
+    // Update Item Event
+    document.querySelector(UISelectors.updateBtn).addEventListener('click', itemUpdateSubmit);
   }
 
   // Add Item submit
@@ -235,12 +284,11 @@ const App = (function (ItemCtrl, UICtrl) {
     } else {
       console.log('Do Something')
     }
-
     e.preventDefault()
   }
 
-  // Update item Submit
-  const itemUpdateSubmit = function(e) {
+  // Click edit item
+  const itemEditClick = function(e) {
     if(e.target.classList.contains('edit-item')) {
       // Get list item ID (item-0)
       const listid = e.target.parentNode.parentNode.id;
@@ -260,9 +308,21 @@ const App = (function (ItemCtrl, UICtrl) {
       // Add Item to form
       UICtrl.addItemToForm();
     }
+    e.preventDefault()
+  }
 
+  // Update Item on Submit
+  const itemUpdateSubmit = function(e) {
+    // Get Item Input
+    const input = UICtrl.getItemInput();
 
-    e.preventDefault
+    // Update Item
+    const updatedItem = ItemCtrl.updateItem(input.name, input.calories);
+
+    // Update Item in UI
+    UICtrl.updateListItem(updatedItem);
+
+    e.preventDefault()
   }
 
   // Public Methods
